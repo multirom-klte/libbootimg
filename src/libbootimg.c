@@ -1327,7 +1327,7 @@ char* libbootimg_get_oslevel (struct boot_img_hdr *header, bool raw) {
 
         if((y >= 2000) && (y < 2128) && (m > 0) && (m <= 12)) {
             if (raw) {
-                sprintf(oslevel, "%d%02d", y, m);
+                sprintf(oslevel, "%d%02d01", y, m);
             } else {
                 sprintf(oslevel, "%d-%02d-01", y, m);
             }
@@ -1358,6 +1358,14 @@ char* libbootimg_get_osversion (struct boot_img_hdr *header, bool raw) {
         }
     }
     return osversion;
+}
+
+char* libbootimg_get_cmdline (struct boot_img_hdr *header) {
+    return header->cmdline;
+}
+
+void libbootimg_set_cmdline (struct boot_img_hdr *header, char* cmdline) {
+    memcpy(header->cmdline, cmdline, strlen(cmdline));
 }
 
 void print_hdr_to_log(struct boot_img_hdr* hdr)
