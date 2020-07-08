@@ -107,6 +107,7 @@ void libbootimg_init_new(struct bootimg *img)
     img->blobs[LIBBOOTIMG_BLOB_KERNEL].size = &img->hdr.kernel_size;
     img->blobs[LIBBOOTIMG_BLOB_RAMDISK].size = &img->hdr.ramdisk_size;
     img->blobs[LIBBOOTIMG_BLOB_SECOND].size = &img->hdr.second_size;
+    img->blobs[LIBBOOTIMG_BLOB_DTB].size = &img->hdr.dt_size;
 }
 
 int libbootimg_read_blob(int64_t addr, struct bootimg_blob* blob, FILE* f)
@@ -289,6 +290,19 @@ int libbootimg_load_headers(struct boot_img_hdr *hdr,
                     {
                         hdr->second_size = 0;
                         hdr->second_addr = 0;
+                    }
+
+                    struct boot_img_elf_prog_hdr *dtb_hdr = get_elf_proc_hdr_of(hdr_info,
+                            LIBBOOTIMG_BLOB_DTB);
+                    if (dtb_hdr != NULL)
+                    {
+                        hdr->dt_size = dtb_hdr->size;
+                        hdr->tags_addr = dtb_hdr->offset;
+                    }
+                    else
+                    {
+                        hdr->dt_size = 0;
+                        hdr->tags_addr = 0;
                     }
 
                     // ELF files version 1 are page aligned, version 2 are not
@@ -698,6 +712,13 @@ struct boot_img_elf_prog_hdr* get_elf_proc_hdr_of(struct boot_img_elf_info *elf_
                 return &elf_info->prog[ELF_PROG_RPM];
             }
             break;
+        case LIBBOOTIMG_BLOB_DTB:
+            if (elf_info->elf_version == VER_ELF_2 ||
+                    elf_info->elf_version == VER_ELF_4)
+            {
+                return &elf_info->prog[ELF_PROG_RPM];
+            }
+            break;
         default:
             break;
     }
@@ -724,6 +745,13 @@ int libbootimg_update_headers(struct bootimg *b)
             b->hdr_info->prog[ELF_PROG_RPM].msize = b->hdr.second_size;
             b->hdr_info->prog[ELF_PROG_CMD].size = b->hdr_info->cmdline_size;
             b->hdr_info->prog[ELF_PROG_CMD].msize = b->hdr_info->cmdline_size;
+        }
+        else
+        {
+            b->hdr_info->prog[ELF_PROG_RPM].size = b->hdr.dt_size;
+            b->hdr_info->prog[ELF_PROG_RPM].msize = b->hdr.dt_size;
+            b->hdr_info->prog[ELF_PROG_CMD].size = b->hdr.dt_size;
+            b->hdr_info->prog[ELF_PROG_CMD].msize = b->hdr.dt_size;
         }
 
         LOG_DBG("Updating program headers...\n");
@@ -898,6 +926,10 @@ int libbootimg_dump_second(struct bootimg *b, const char *dest)
     return libbootimg_dump_blob(&b->blobs[LIBBOOTIMG_BLOB_SECOND], dest);
 }
 
+int libbootimg_dump_dtb(struct bootimg *b, const char *dest)
+{
+    return libbootimg_dump_blob(&b->blobs[LIBBOOTIMG_BLOB_DTB], dest);
+}
 
 int libbootimg_load_blob(struct bootimg_blob *blob, const char *src)
 {
@@ -958,6 +990,11 @@ int libbootimg_load_second(struct bootimg *b, const char *src)
     return libbootimg_load_blob(&b->blobs[LIBBOOTIMG_BLOB_SECOND], src);
 }
 
+int libbootimg_load_dtb(struct bootimg *b, const char *src)
+{
+    return libbootimg_load_blob(&b->blobs[LIBBOOTIMG_BLOB_DTB], src);
+}
+
 int libbootimg_write_img(struct bootimg *b, const char *dest)
 {
     FILE *f;
@@ -983,6 +1020,7 @@ int libbootimg_write_img_fileptr(struct bootimg *b, FILE *f)
     int pos_start;
     int pos_end = 0;
 
+    LOG_DBG("Writing.\n");
     pos_start = ftell(f);
     if(pos_start < 0)
         return translate_errnum(errno);
@@ -1327,6 +1365,11 @@ void print_hdr_to_log(struct boot_img_hdr* hdr)
     {
         LOG_DBG("  second stage size = %u bytes (%.2f MB)\n", hdr->second_size,
                 (double )hdr->second_size / 0x100000);
+    }
+    if (hdr->dt_size)
+    {
+        LOG_DBG("  device tree size  = %u bytes (%.2f MB)\n", hdr->dt_size,
+                (double )hdr->dt_size / 0x100000);
     }
     LOG_DBG("* load addresses:\n");
     LOG_DBG("  kernel:       0x%08x\n", hdr->kernel_addr);

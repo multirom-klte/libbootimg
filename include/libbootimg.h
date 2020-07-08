@@ -36,6 +36,7 @@ enum libbootimg_blob_type
     LIBBOOTIMG_BLOB_KERNEL  = 0,
     LIBBOOTIMG_BLOB_RAMDISK = 1,
     LIBBOOTIMG_BLOB_SECOND  = 2,
+    LIBBOOTIMG_BLOB_DTB     = 3,
 
     LIBBOOTIMG_BLOB_CNT
 };
@@ -51,10 +52,12 @@ enum libbootimg_blob_load_mask
     LIBBOOTIMG_LOAD_KERNEL      = (1 << LIBBOOTIMG_BLOB_KERNEL),
     LIBBOOTIMG_LOAD_RAMDISK     = (1 << LIBBOOTIMG_BLOB_RAMDISK),
     LIBBOOTIMG_LOAD_SECOND      = (1 << LIBBOOTIMG_BLOB_SECOND),
+    LIBBOOTIMG_LOAD_DTB         = (1 << LIBBOOTIMG_BLOB_DTB),
 
     LIBBOOTIMG_LOAD_ALL         = ( LIBBOOTIMG_LOAD_KERNEL |
                                     LIBBOOTIMG_LOAD_RAMDISK |
-                                    LIBBOOTIMG_LOAD_SECOND )
+                                    LIBBOOTIMG_LOAD_SECOND |
+                                    LIBBOOTIMG_LOAD_DTB )
 };
 
 /**
