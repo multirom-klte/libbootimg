@@ -71,6 +71,8 @@
 
 #define ELF_SECT_CMD 0
 
+#define BOOT_HEADER_VERSION_MAX 4
+
 struct boot_img_hdr
 {
     uint8_t magic[BOOT_MAGIC_SIZE];
@@ -86,8 +88,11 @@ struct boot_img_hdr
 
     uint32_t tags_addr;    /* physical addr for kernel tags */
     uint32_t page_size;    /* flash page size we assume */
-    uint32_t dt_size;      /* device tree in bytes */
-    uint32_t unused;       /* future expansion: should be 0 */
+    union {
+        uint32_t header_version;
+        uint32_t dt_size;  /* device tree in bytes */
+    };
+    uint32_t os_version;   /* operating system version + security patch level */
 
     uint32_t oslevel;
 
@@ -96,7 +101,15 @@ struct boot_img_hdr
     uint8_t cmdline[BOOT_ARGS_SIZE];
 
     uint32_t id[8]; /* timestamp / checksum / sha1 / etc */
+
     uint8_t extra_cmdline[BOOT_EXTRA_ARGS_SIZE];
+
+    uint32_t recovery_dtbo_size;   /* size in bytes for recovery DTBO/ACPIO image */
+    uint64_t recovery_dtbo_offset; /* offset to recovery dtbo/acpio in boot image */
+    uint32_t header_size;
+
+    uint32_t dtb_size; /* size in bytes for DTB image */
+    uint64_t dtb_addr; /* physical load address for DTB image */
 }__attribute__((packed));
 
 struct boot_img_elf_hdr_32

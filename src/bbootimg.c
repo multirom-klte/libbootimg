@@ -83,6 +83,7 @@ static void print_help(const char *prog_name)
     "    secondaddr = 0x1234                 - 2nd stage load address\n"
     "    tagsaddr = 0x1234                   - atags address\n"
     "    name = string without quotes        - name of the image, max 16 characters\n"
+    "    osversion = 0x1234                  - OS Version and Patch Level\n"
     "    cmdline = string without quotes     - cmdline, max 512 characters\n"
     ,libbootimg_version_str(), prog_name, prog_name, prog_name, prog_name, prog_name, prog_name);
 }
@@ -106,9 +107,10 @@ static int write_config(struct bbootimg_info *i, const char *dst)
         "tagsaddr = 0x%X\n"
         "oslevel = 0x%X\n"
         "name = %s\n"
+        "osversion = 0x%X\n"
         "cmdline = %s\n",
         (uint32_t)i->img_size, i->img.hdr.page_size, i->img.hdr.kernel_addr, i->img.hdr.ramdisk_addr,
-        i->img.hdr.second_addr, i->img.hdr.tags_addr, i->img.hdr.oslevel, i->img.hdr.name, libbootimg_get_cmdline(&i->img.hdr));
+        i->img.hdr.second_addr, i->img.hdr.tags_addr, i->img.hdr.oslevel, i->img.hdr.name, i->img.hdr.os_version, libbootimg_get_cmdline(&i->img.hdr));
 
     fclose(f);
     return res;
@@ -169,6 +171,8 @@ static int load_config_line(struct bbootimg_info *i, const char *line)
         i->img.hdr.oslevel = strtoll(arg_s, NULL, 0);
     else if(strncmp("name", start, n_to_cmp) == 0)
         parse_config_str((char*)i->img.hdr.name, arg_s, end, BOOT_NAME_SIZE);
+    else if(strncmp("osversion", start, n_to_cmp) == 0)
+        i->img.hdr.os_version = strtoll(arg_s, NULL, 0);
     else if(strncmp("cmdline", start, n_to_cmp) == 0)
         parse_config_str((char*)i->img.hdr.cmdline, arg_s, end, BOOT_ARGS_SIZE);
     else
@@ -306,17 +310,43 @@ static int print_info(const char *path)
 
     printf ("* kernel size       = %u bytes (%.2f MB)\n", img.hdr.kernel_size, (double)img.hdr.kernel_size/0x100000);
     printf ("  ramdisk size      = %u bytes (%.2f MB)\n", img.hdr.ramdisk_size, (double)img.hdr.ramdisk_size/0x100000);
-    if (img.hdr.second_size)
+    if (img.hdr.second_size) {
         printf ("  second stage size = %u bytes (%.2f MB)\n", img.hdr.second_size, (double)img.hdr.second_size/0x100000);
-    if (img.hdr.dt_size)
-        printf ("  device tree size  = %u bytes (%.2f MB)\n", img.hdr.dt_size, (double)img.hdr.dt_size/0x100000);
+    }
+    if (img.hdr.dt_size > BOOT_HEADER_VERSION_MAX) {
+        printf("  device tree size  = %u bytes (%.2f MB)\n",
+               img.hdr.dt_size,
+               (double)img.hdr.dt_size/0x100000);
+    }
 
     printf ("\n* load addresses:\n");
     printf ("  kernel:       0x%08x\n", img.hdr.kernel_addr);
     printf ("  ramdisk:      0x%08x\n", img.hdr.ramdisk_addr);
     if (img.hdr.second_size)
         printf ("  second stage: 0x%08x\n", img.hdr.second_addr);
-    printf ("  tags:         0x%08x\n\n", img.hdr.tags_addr);
+    printf ("  tags:         0x%08x\n", img.hdr.tags_addr);
+
+    printf ("\n* versions:\n");
+    if (img.hdr.header_version <= BOOT_HEADER_VERSION_MAX) {
+        printf ("  header:       %u\n",     img.hdr.header_version);
+    }
+    if (img.hdr.os_version > 0) {
+        uint32_t os_version = img.hdr.os_version >> 11;
+        uint32_t os_patch_level =  img.hdr.os_version & 0x7ff;;
+        uint32_t a = (os_version >> 14) & 0x7f;
+        uint32_t b = (os_version >> 7)  & 0x7f;
+        uint32_t c = os_version & 0x7f;
+
+        uint32_t y = (os_patch_level >> 4) + 2000;
+        uint32_t m = os_patch_level & 0xf;
+
+        if((a < 128) && (b < 128) && (c < 128) &&
+           (y >= 2000) && (y < 2128) && (m > 0) && (m <= 12)) {
+            printf ("  os version:   %u.%u.%u\n", a, b, c);
+            printf ("  os patch lvl: %u.%u\n", y, m);
+        }
+    }
+    printf ("\n");
 
     if (img.hdr.cmdline[0])
         printf ("* cmdline = %s\n\n", img.hdr.cmdline);
@@ -367,6 +397,7 @@ static int print_json(const char *path)
     printf("        \"tags_addr\": %u,\n", img.hdr.tags_addr);
     printf("        \"page_size\": %u,\n", img.hdr.page_size);
     printf("        \"name\": \"%s\",\n", name);
+    printf("        \"os_version\": %u,\n", img.hdr.os_version);
     printf("        \"cmdline\": \"%s\",\n", libbootimg_get_cmdline(&img));
     printf("        \"dt_size\": %u,\n", img.hdr.dt_size);
     printf("        \"id\": [\n");

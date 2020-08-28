@@ -85,8 +85,8 @@ static void fill_id_hashes(struct bootimg *b)
     // hash kernel, ramdisk and second _addr and _size together
     b->hdr.id[i++] = calc_fnv_hash(&b->hdr.kernel_size, sizeof(uint32_t)*6);
 
-    // hash tags_addr, page_size, dt_size and unused together
-    b->hdr.id[i++] = calc_fnv_hash(&b->hdr.tags_addr, sizeof(uint32_t)*4);
+    // hash tags_addr, page_size, header_version and os_version together
+    b->hdr.id[i++] = calc_fnv_hash(&b->hdr.tags_addr, sizeof(uint32_t)*6);
 
     // cmdline is directly after name, so hash them together
     b->hdr.id[i++] = calc_fnv_hash(b->hdr.name, BOOT_NAME_SIZE + strlen((char*)b->hdr.cmdline));
@@ -1033,9 +1033,9 @@ int libbootimg_write_img_fileptr(struct bootimg *b, FILE *f)
 
     // make sure it ends with 0
 
-    // set unused field to 0 - we might not be handling something
-    // which gets turned-on by this field, like with dtb
-    b->hdr.unused = 0;
+    // set unused field to 0 - we might not be handling something 
+    // which gets turned-on by this field, like with dtb 
+    //b->hdr.header_version = 0;
 
     fill_id_hashes(b);
 
