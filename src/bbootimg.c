@@ -139,7 +139,7 @@ static int load_config_line(struct bbootimg_info *i, const char *line)
     const char *start, *end;
     char *name_e;
     char *arg_s;
-    size_t n_to_cmp, len;
+    size_t n_to_cmp;
 
     for(start = line; isspace(*start); ++start);
 
@@ -398,7 +398,7 @@ static int print_json(const char *path)
     printf("        \"page_size\": %u,\n", img.hdr.page_size);
     printf("        \"name\": \"%s\",\n", name);
     printf("        \"os_version\": %u,\n", img.hdr.os_version);
-    printf("        \"cmdline\": \"%s\",\n", libbootimg_get_cmdline(&img));
+    printf("        \"cmdline\": \"%s\",\n", libbootimg_get_cmdline(&img.hdr));
     printf("        \"dt_size\": %u,\n", img.hdr.dt_size);
     printf("        \"id\": [\n");
     for(i = 0; i < 8; ++i)

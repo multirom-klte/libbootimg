@@ -184,11 +184,6 @@ int libbootimg_init_load(struct bootimg *img, const char *path, int load_blob_ma
 
     fclose(f);
     return 0;
-
-fail:
-    libbootimg_destroy(img);
-    fclose(f);
-    return res;
 }
 
 void libbootimg_destroy(struct bootimg *b)
@@ -219,7 +214,6 @@ int libbootimg_load_headers(struct boot_img_hdr *hdr,
     int res = 0;
     FILE *f;
     size_t i;
-    uint32_t cmd_len;
     static const int known_magic_pos[] = {
         0x0,   // default
         0x100, // HTC signed boot images
@@ -635,7 +629,6 @@ int libbootimg_load_elf_misc_header(struct boot_img_elf_info *hdr_info, uint32_t
 
 void libbootimg_read_cmdline(struct boot_img_hdr *hdr, struct boot_img_elf_info *elf_info, FILE *f)
 {
-    unsigned char buf[BOOT_ARGS_SIZE];
     int cmdline_start_pos = 0;
     uint32_t cmdline_full_size = 0;
 
@@ -660,7 +653,6 @@ void libbootimg_read_cmdline(struct boot_img_hdr *hdr, struct boot_img_elf_info 
     memset(&hdr->cmdline, '\0', BOOT_ARGS_SIZE);
     fseek(f, cmdline_start_pos, SEEK_SET);
 
-    int buf_idx;
     if (elf_info->elf_version == VER_ELF_2 ||
             elf_info->elf_version == VER_ELF_4)
     {
